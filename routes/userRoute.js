@@ -7,6 +7,7 @@ try{
     routes.delete('/register/:id', userController.deleteUser);
     routes.patch('/register/:id', userController.updateUser);
     routes.post('/register/login',  userController.login);
+    routes.get('/register', userController.getUser);
 }catch(err){
     console.error(err)
 }

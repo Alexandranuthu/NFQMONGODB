@@ -4,7 +4,10 @@ const createError = require('http-errors');
 const bcrypt = require ('bcrypt');
 const { authSchema } = require('../auth/auth_schema');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../helpers/jwtHelper');
-const JWT = require()
+const JWT = require('jsonwebtoken');
+const { config } = require('dotenv');
+const jwtHelper = require('../helpers/jwtHelper')
+
 
 module.exports = {
     addUser: async (req, res, next) => {
@@ -20,14 +23,26 @@ module.exports = {
    
             const savedUser = await user.save()
             const accessToken = await signAccessToken(savedUser.id)
+            const refreshToken = await signRefreshToken(savedUser.id)
 
             console.log('Access Token:', accessToken);
+            console.log('Refresh Token:', refreshToken);
         
-            res.json({ signAccessToken, signRefreshToken, message: 'User added successfully' });
+            res.json({ accessToken, refreshToken, message: 'User added successfully' });
+
    
         } catch (error) {
                if(error.isJoi === true)error.status = 422
                next(error)
+        }
+    },
+    getUser:  async (req, res) => {
+        try {
+            const result = await User.find({});
+            res.send(result); // Sending the result as the response
+        } catch (error) {
+            console.error(error);
+            res.status(500).send("Internal Server Error");
         }
     },
     updateUser: async (req, res, next) => {
@@ -92,7 +107,7 @@ module.exports = {
             const refreshToken = await jwtHelper.signRefreshToken(user.id);
 
             //send the access and refresh token in the response
-            res.send({ accessToken, refreshToken});
+            res.send({ accessToken, refreshToken, message: 'login successfull'});
         }catch(error){
             //if a joi val error occurs, return a bad request error
             if (error.isJoi === true)
