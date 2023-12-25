@@ -13,7 +13,7 @@ module.exports = {
     addUser: async (req, res, next) => {
         try {
             // Extract user registration data from the request body
-            const { email, password } = req.body;
+            const { username,email, password } = req.body;
                const result = await authSchema.validateAsync(req.body);
    
                const Exists = await User.findOne({email: email})
@@ -115,5 +115,34 @@ module.exports = {
             //pass other error to the next middle ware for handling
             next(error);
         }
-    }
+    }, 
+    setupProfile: async (req, res) => {
+        try {
+            const {userId, displayName, location, gender, birthday} = req.body;
+
+            await User.findByIdAndUpdate(userId, {displayName, location,
+            gender, birthday});
+
+            res.status(200).json({
+                success: true, message: 'User profile set up successfully'
+            });
+        }catch(error){
+            console.error('Error setting up user profile:', error);
+            res.status(500).json({success: false, message: 'Internal server error'});
+        }
+    },
+    getProfile: async (req, res) => {
+        try {
+          const userId = req.params.userId;
+      
+          // Fetch user profile from the database
+          const userProfile = await User.findById(userId);
+      
+          // Send the user profile as the response
+          res.status(200).json({ success: true, data: userProfile });
+        } catch (error) {
+          console.error('Error getting user profile:', error);
+          res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+      }
 };

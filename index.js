@@ -6,11 +6,17 @@ dotenv.config();
 const cors = require('cors');
 const routes = require('./routes/userRoute');
 const router = require('./routes/filmRoutes');
+const route = require('./routes/platformRoutes')
+const listRoute = require('./routes/listsRoutes')
 const path = require('path');
+const multer = require('multer');
+const Platform = require('./model/platformModel')
 
 
 app.use(cors({
   origin: "http://localhost:3000",
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
 }));
 
 // Body parser middleware
@@ -19,8 +25,57 @@ app.use(bodyParser.json());
 // Routes
 app.use(routes);
 app.use(router);
-app.use('/posters', express.static(path.join(__dirname, 'Posters')));
+app.use(route);
+app.use(listRoute);
 
+// app.use('/Posters', express.static(path.join(__dirname, 'public', 'Posters')));
+
+const storageEngine = multer.diskStorage({
+  destination: "./avatars",
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}--${file.originalname}`);
+  },
+});
+
+const upload = multer({
+  storage: storageEngine,
+  limits: { fileSize: 1000000 },
+  fileFilter: (req, file, cb) => {
+    checkFileType(file, cb);
+  }
+});
+
+const checkFileType = function (file, cb) {
+  //Allowed file extensions
+  const fileTypes = /jpeg|jpg|png|gif|svg/;
+
+  //check extension names
+  const extName = fileTypes.test(path.extname(file.originalname).toLowerCase());
+
+  const mimeType = fileTypes.test(file.mimetype);
+
+  if (mimeType && extName) {
+    return cb(null, true);
+  } else {
+    cb("Error: You can Only Upload Images!!");
+  }
+};
+
+app.post("/single", upload.single("image"), (req, res) => {
+  if (req.file) {
+    res.send("Single file uploaded successfully");
+  } else {
+    res.status(400).send("Please upload a valid image");
+  }
+});
+
+app.post("/multiple", upload.array("images", 5), (req, res) => {
+  if (req.files) {
+    res.send("Muliple files uploaded successfully");
+  } else {
+    res.status(400).send("Please upload a valid images");
+  }
+});
 // Handling 404 error
 app.use((req, res, next) => {
   const err = new Error("Not found");

@@ -1,13 +1,16 @@
 const express = require ('express');
-const router = express.Router();
+const route = express.Router();
 
 const filmController = require('../controller/filmController')
 
 try{
-    router.get('/getFilm', filmController.getFilm);
-    router.post('/addFilm', filmController.addFilms);
+    route.get('/getFilms', filmController.getFilms);
+    route.post('/addFilm', filmController.addFilm);
+    route.delete('/deleteFilm/:id', filmController.deleteFilm);
+    route.get('/getFile/:path', filmController.getFile);
+    route.patch('/addFilm/patch/:id', filmController.updateFilm);
 }catch(err){
     console.error(err)
 }
 
-module.exports = router;
+module.exports = route;
