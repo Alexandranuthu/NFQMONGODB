@@ -27,10 +27,16 @@ module.exports = {
     addFilm: async (req, res) => {
         // Create a new Film instance with data from the request body
         const film = new Film(req.body);
+        const {title} = req.body;
         
         try {
             // Save the new film to the database
             const newFilm = await film.save();
+            const existingFilm = await Film.findOne({ title });
+            
+            if(existingFilm) {
+                return res.status(409).json({success:false, message: 'Film already exists'});
+            }
 
             // Respond with a JSON object containing the new film
             res.status(201).json({ success: true, data: newFilm });
