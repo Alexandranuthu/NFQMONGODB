@@ -6,8 +6,8 @@ module.exports = {
         const list = new Lists(req.body);
         
         try {
-            // Save the new film to the database
-            const newLists= await film.save();
+            // Save the new film to the databased
+            const newLists= await list.save();
 
             // Respond with a JSON object containing the new film
             res.status(201).json({ success: true, data: newLists });
@@ -65,5 +65,29 @@ module.exports = {
     
         res.json({ success: true, data: list });
     },
+    updateList: async (req, res, next) => {
+        // Extract the film ID from the request parameters
+        const id = req.params.id;
     
+        try {
+            // Find the film by ID and update its data
+            const list = await Lists.findByIdAndUpdate(id, req.body, { new: true });
+    
+            // If the film does not exist, throw a 404 error
+            if (!list) {
+                throw createError(404, 'List does not exist');
+            }
+    
+            // Respond with a JSON object containing the updated film
+            res.json({ success: true, data: list });
+        } catch (error) {
+            // Handle errors (e.g., invalid ID) and pass to the error-handling middleware
+            console.error(error.message);
+            if (error instanceof mongoose.CastError) {
+                next(createError(400, "Invalid list ID"));
+                return;
+            }
+            next(error);
+        }
+    },
 }

@@ -14,7 +14,7 @@ const filmSchema = new mongoose.Schema({
         required: true
     },
     whereToWatch: [{
-        platform: { type: mongoose.Schema.Types.ObjectId, ref:'platforms', required:true},
+        platform: { type: mongoose.Schema.Types.ObjectId, ref:'Platform', required:true},
         link: {type: String, required: true},
     }],
     ratings: [{ 
