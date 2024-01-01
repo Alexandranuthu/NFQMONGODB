@@ -10,35 +10,106 @@ const jwtHelper = require('../helpers/jwtHelper')
 
 
 module.exports = {
-    addUser: async (req, res, next) => {
-        try {
-            // Extract user registration data from the request body
-            const { username,email, password } = req.body;
-               const result = await authSchema.validateAsync(req.body);
+    // addUser: async (req, res, next) => {
+    //     try {
+    //         // Extract user registration data from the request body
+    //         const { username,email, password } = req.body;
+    //            const result = await authSchema.validateAsync(req.body);
    
-               const Exists = await User.findOne({email: email})
+    //            const Exists = await User.findOne({email: email})
    
-               if (Exists) throw createError.Conflict(`${email} is already been registered`)
-               const user = new User(result)
+    //            if (Exists) throw createError.Conflict(`${email} is already been registered`)
+    //            const user = new User(result)
    
-            const savedUser = await user.save()
-            const accessToken = await signAccessToken(savedUser.id)
-            const refreshToken = await signRefreshToken(savedUser.id)
+    //         const savedUser = await user.save()
+    //         const accessToken = await signAccessToken(savedUser.id)
+    //         const refreshToken = await signRefreshToken(savedUser.id)
 
-            console.log('Access Token:', accessToken);
-            console.log('Refresh Token:', refreshToken);
+    //         console.log('Access Token:', accessToken);
+    //         console.log('Refresh Token:', refreshToken);
         
-            res.json({ accessToken, refreshToken, message: 'User added successfully' });
+    //         res.json({ accessToken, refreshToken, message: 'User added successfully' });
 
    
+    //     } catch (error) {
+    //            if(error.isJoi === true)error.status = 422
+    //            next(error)
+    //     }
+    // },
+    addUserStep1: async (req, res) => {
+            try{
+                //extracting the basic information from the request body
+                const { username, email, password} = req.body;
+                const result = await authSchema.validateAsync(req.body);
+
+                const exists = await User.findOne({ email });
+
+                if (exists) {
+                    throw createError.Conflict(`${email} is already registered`);
+                }
+                //save user with basic information first
+                const user = await new User(result);
+                const savedUser = await user.save();
+
+                //to generate a token for the next step
+                const accessToken = await signAccessToken(savedUser.id);
+                const refreshToken = await signRefreshToken(savedUser.id);
+
+                console.log('User Created Successfully', savedUser);
+
+                //redirecting the user to the second step with the token
+                const redirectUrl = `addUserStep2?token=${accessToken}`;
+                res.json({ accessToken, refreshToken, message: 'User added successfully', redirectUrl });
+            }catch (error) {
+                if (error.isJoi === true) error.status = 422;
+                console.error('Error in step 1:', error);
+                res.status(500).json({success: false, error: 'Internal Server Error'});
+            }
+    },
+    addUserStep2: async (req, res) => {
+        const addUserStep2 = async (email,displayname, age, gender, location, profilePicture) => {
+            try {
+                // Your logic to update the user with additional information and profile picture
+                const updatedUser = await User.findOneAndUpdate(
+                    { email },
+                    { displayname,age, gender, location, profilePicture },
+                    { new: true }
+                );
+    
+                if (!updatedUser) {
+                    throw createError.NotFound('User not found');
+                }
+    
+                console.log('User updated successfully:', updatedUser);
+            } catch (error) {
+                console.error('Error updating user profile:', error.message);
+                throw error; // Rethrow the error for higher-level handling
+            }
+        };
+    
+        try {
+            const { email,displayname, age, gender, location } = req.body;
+            const profilePicture = req.file ? req.file.filename : null;
+            // Updating the user with additional information
+            await addUserStep2(email,displayname, age, gender, location, profilePicture);
+    
+            res.json({
+                success: true,
+                message: 'User Registration Completed'
+            });
         } catch (error) {
-               if(error.isJoi === true)error.status = 422
-               next(error)
+            console.error('Error in step 2:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Internal Server Error'
+            });
         }
     },
+    
     getUser:  async (req, res) => {
         try {
-            const result = await User.find({});
+            const id = req.params.id //extracting the id from the request parameters
+            const result = await User.findById(id);
             res.send(result); // Sending the result as the response
         } catch (error) {
             console.error(error);
@@ -46,8 +117,9 @@ module.exports = {
         }
     },
     updateUser: async (req, res, next) => {
-            const { username, email, password } = req.body
-            const id = req.params.id //extracting the id from the request parameters
+        const id = req.params.id //extracting the id from the request parameters
+            const { username, email, password,displayName, location, gender, birthday } = req.body
+            
         try{
             if(password) {
                 const hashedPassword = await bcrypt.hash(password, 10);
@@ -57,6 +129,10 @@ module.exports = {
                     {
                         username,
                         email,
+                        displayName,
+                        location,
+                        gender,
+                        birthday,
                         password : hashedPassword,
                     },
                     {new: true}
@@ -77,7 +153,7 @@ module.exports = {
             }
             res.send(user);
         }catch(error){
-            console.error(error.message)
+            console.error('Error deleting user profile:', error.message);
             if (error instanceof mongoose.CastError){
                 next(createError(400, "Invalid user id"));
                 return;

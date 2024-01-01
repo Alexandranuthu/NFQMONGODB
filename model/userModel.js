@@ -17,6 +17,38 @@ const UserSchema = new mongoose.Schema({
         required:true,
         unique:true
     },
+    //we will use getter setter for this field to hide the password from being exposed in JSON representation of user object
+    location:{
+        address : {type:String},
+    },
+    diplayName:{
+        type: String,
+    },
+    gender: {
+        type: String,
+        enum: ['male', 'female', 'non-binary', 'other'],
+    },
+    birthday:{
+        year:{
+            type:Number,
+            required:true,
+        },
+        month: {
+            type: String,
+            enum: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October','November', 'December'], 
+            required: true,
+        },
+        day:{
+            type: Number,
+            required: true,
+        }
+    },
+    profilePicture: {
+        type: String,
+    },
+    Bio:{
+        type:String,
+    },
     createdAt:{
         type:Date,
         default:Date.now
@@ -49,6 +81,13 @@ UserSchema.methods.isValidPassword =async function(password){
         throw error;
     }
 }
+UserSchema.virtual('age').get(function() {
+    if (this.birthday && this.birthday.year) {
+        const currentYear = new Date().getFullYear();
+        return currentYear - this.birthday.year;
+    }
+    return null;
+})
 
 const User = mongoose.model('User', UserSchema);
 

@@ -22,6 +22,7 @@ module.exports = {
             res.status(500).json({ success: false, error: 'Internal Server Error' });
         } 
     },
+    
 
     // Controller function to add a new film
     addFilm: async (req, res) => {
@@ -108,5 +109,32 @@ updateFilm: async (req, res, next) => {
         next(error);
     }
 },
+getFilmDetails: async (req, res, next) => {
+    try {
+        const id = req.params.id; // Extract film ID from request parameters
+        // Fetch the film from the database by its ID
+        const film = await Film.findById(id);
+
+        // Check if the film with the specified ID exists
+        if (!film) {
+            // Respond with a 404 Not Found status if the film is not found
+            return res.status(404).json({ success: false, error: 'Film not found' });
+        }
+
+        // Add the full path to the poster image
+        const filmWithPosterPath = {
+            ...film.toJSON(),
+            posterImagePath: `/Posters/${film.posterImagePath}`
+        };
+
+        // Respond with a JSON object containing the film details
+        res.json({ success: true, data: filmWithPosterPath });
+    } catch (error) {
+        // Handle errors and respond with an error message
+        console.error('Error fetching film details:', error);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+},
+
 
 };

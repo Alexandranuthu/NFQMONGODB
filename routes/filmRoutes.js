@@ -9,6 +9,7 @@ try{
     route.delete('/deleteFilm/:id', filmController.deleteFilm);
     route.get('/getFile/:path', filmController.getFile);
     route.patch('/addFilm/patch/:id', filmController.updateFilm);
+    route.get('/getFilmDetails/:id', filmController.getFilmDetails);
 }catch(err){
     console.error(err)
 }

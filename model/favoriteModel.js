@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');//is Object Data Modelling that helps you create and manage MONGODB objects in Node.js apps
 //uses Encapsulation and abstraction
-const reviewSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User', 
-        required:true
-    },
+const favoriteSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -14,6 +9,10 @@ const reviewSchema = new mongoose.Schema({
     filmId:{
         type: String,
         required: true,
+    },
+    review:{
+        type: String,
+        required: false,
     },
     rating:{
         type: Number,
@@ -24,19 +23,19 @@ const reviewSchema = new mongoose.Schema({
         enum: ["film", "series"],
         required:true,
     },
-    mediaPoster:{
+    director:{
+        type:String,
+        required:true,
+    },
+    releaseDate:{
         type: String,
-        required: true
+        required:true,
     },
-    likes:{
-        type: Number,
-        default: 0,
+    genre:{
+        type: String,
+        required: true,
     },
-    dislikes:{
-        type: Number,
-        default: 0,
-    },
-    reviewText:{
+    mediaPoster:{
         type: String,
         required: true
     },
@@ -46,6 +45,6 @@ const reviewSchema = new mongoose.Schema({
     }
 });
 
-const Review = mongoose.model('Review', reviewSchema);
+const favorite = mongoose.model('favorite', favoriteSchema);
 
-module.exports = Review;
+module.exports = favorite;
