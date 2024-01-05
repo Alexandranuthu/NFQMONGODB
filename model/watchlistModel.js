@@ -4,11 +4,16 @@ const watchlistSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'User', 
-        required:true
+        required:true,
     },
-    filmId:{
-        type: String,
-        required: true,
+    film:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref:'Film',
+        required:true,
+    },
+    watched:{
+        type: Boolean,
+        default: false,
     },
     addedAt:{
         type: Date,

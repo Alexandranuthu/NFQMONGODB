@@ -31,8 +31,9 @@ const filmSchema = new mongoose.Schema({
         required: true
     },
     genre:[{
-        type: String,
-        required: true
+        type: mongoose.Schema.Types.ObjectId,
+        ref:'Genre', 
+        required:true,
     }],
     cast:[{
         type: String,

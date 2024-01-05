@@ -1,5 +1,6 @@
 const Film = require('../model/filmModel');
 const createError = require('http-errors');
+const mongoose = require('mongoose');
 const path = require('path');
 module.exports = {
     // Controller function to get all films
@@ -96,7 +97,7 @@ updateFilm: async (req, res, next) => {
         if (!film) {
             throw createError(404, 'Film does not exist');
         }
-
+        film.genre = req.body.genre.map((genreId) => mongoose.Types.ObjectId(genreId));
         // Respond with a JSON object containing the updated film
         res.json({ success: true, data: film });
     } catch (error) {
@@ -113,7 +114,10 @@ getFilmDetails: async (req, res, next) => {
     try {
         const id = req.params.id; // Extract film ID from request parameters
         // Fetch the film from the database by its ID
-        const film = await Film.findById(id);
+        const film = await Film.findById(id).populate({
+            path: 'genre',
+            select: 'name'
+        });
 
         // Check if the film with the specified ID exists
         if (!film) {

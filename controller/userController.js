@@ -10,39 +10,18 @@ const jwtHelper = require('../helpers/jwtHelper')
 
 
 module.exports = {
-    // addUser: async (req, res, next) => {
-    //     try {
-    //         // Extract user registration data from the request body
-    //         const { username,email, password } = req.body;
-    //            const result = await authSchema.validateAsync(req.body);
-   
-    //            const Exists = await User.findOne({email: email})
-   
-    //            if (Exists) throw createError.Conflict(`${email} is already been registered`)
-    //            const user = new User(result)
-   
-    //         const savedUser = await user.save()
-    //         const accessToken = await signAccessToken(savedUser.id)
-    //         const refreshToken = await signRefreshToken(savedUser.id)
-
-    //         console.log('Access Token:', accessToken);
-    //         console.log('Refresh Token:', refreshToken);
-        
-    //         res.json({ accessToken, refreshToken, message: 'User added successfully' });
-
-   
-    //     } catch (error) {
-    //            if(error.isJoi === true)error.status = 422
-    //            next(error)
-    //     }
-    // },
     addUserStep1: async (req, res) => {
             try{
                 //extracting the basic information from the request body
-                const { username, email, password} = req.body;
-                const result = await authSchema.validateAsync(req.body);
+                const 
+                { username, email, password, birthday} = req.body;
+                const result = await authSchema.validateAsync({
+                    username,
+                    email,
+                    password,
+                });
 
-                const exists = await User.findOne({ email });
+                const exists = await User.findOne({ email});
 
                 if (exists) {
                     throw createError.Conflict(`${email} is already registered`);
@@ -52,7 +31,7 @@ module.exports = {
                 const savedUser = await user.save();
 
                 //to generate a token for the next step
-                const accessToken = await signAccessToken(savedUser.id);
+                const accessToken = await signAccessToken(savedUser.id, savedUser.username, true);
                 const refreshToken = await signRefreshToken(savedUser.id);
 
                 console.log('User Created Successfully', savedUser);
@@ -116,82 +95,122 @@ module.exports = {
             res.status(500).send("Internal Server Error");
         }
     },
-    updateUser: async (req, res, next) => {
-        const id = req.params.id //extracting the id from the request parameters
-            const { username, email, password,displayName, location, gender, birthday } = req.body
-            
-        try{
-            if(password) {
-                const hashedPassword = await bcrypt.hash(password, 10);
-
-                await User.findByIdAndUpdate(
-                    id,
-                    {
-                        username,
-                        email,
-                        displayName,
-                        location,
-                        gender,
-                        birthday,
-                        password : hashedPassword,
-                    },
-                    {new: true}
-                );
-            } 
-            res.send("user updated successfully");
-        }catch(error){
-            console.log(error.message)
-            next(error);
+    getAllUsers: async (req, res) => {
+        const query = req.query.new;
+    
+        // if (req.user && req.user.isAdmin === true) {  // Use req.user.isAdmin to check for admin access
+        if(true){
+            try {
+                const users = query ? await User.find().sort({ _id: -1 }).limit(10) : await User.find();
+                console.log('req.user.isAdmin:', req.user.isAdmin);
+                res.status(200).json(users); // Sending the result as the response
+            } catch (error) {
+                console.error(error);
+                res.status(500).send("Internal Server Error" + error.message);
+            }
+        } else {
+            res.status(403).json("You are not allowed to see all users");
         }
-        },
-    deleteUser: async (req, res, next) => {
-        const id = req.params.id //extracting the id from the request parameters
-        try{
-            const user = await User.findByIdAndDelete(id);
-            if(!user){
-                throw createError(404, 'User does not exist')
+    },
+    
+    updateUser: async (req, res, next) => {
+        const id = req.params.id; // extracting the id from the request parameters
+        const { username, email, password } = req.body;
+        let result; // declare result variable outside the if block
+    
+        try {
+            if (req.user.id === req.params.id || req.user.isAdmin) {
+                if (password) {
+                    const hashedPassword = await bcrypt.hash(password, 10);
+    
+                    result = await User.findByIdAndUpdate(
+                        id,
+                        {
+                            username,
+                            email,
+                            password: hashedPassword,
+                        },
+                        { new: true }
+                    );
+                    if (!result) {
+                        throw createError(404, 'User does not exist');
+                    }
+                } else {
+                    // Handle the case when password is not provided
+                    result = await User.findByIdAndUpdate(
+                        id,
+                        {
+                            username,
+                            email,
+                        },
+                        { new: true }
+                    );
+                    if (!result) {
+                        throw createError(404, 'User does not exist');
+                    }
+                }
+                console.log('Requesting user ID:', req.user.id);
+                console.log('Target user ID:', id);
+        
+                res.json({ success: true, data: result });
+            } else {
+                throw createError(403, 'Unauthorized: You do not have permission to update this user.');
             }
-            res.send(user);
-        }catch(error){
-            console.error('Error deleting user profile:', error.message);
-            if (error instanceof mongoose.CastError){
-                next(createError(400, "Invalid user id"));
-                return;
-            }
+        } catch (error) {
+            console.log(error.message);
             next(error);
         }
     },
-    //Login controller function
-    login: async (req, res, next)=>{
-        try{
-            //valiate the request body using the authentication schema
-            const result = await authSchema.validateAsync(req.body);
-
-            //Finding the user by email in the database
-            const user = await User.findOne({ email: result.email });
-
-            //If user is not found, throw a "Not" found error
-            if(!user){
-                throw createError.NotFound('User not registered');
+    
+    deleteUser: async (req, res, next) => {
+        const id = req.params.id; // extracting the id from the request parameters
+        const { username, email, password } = req.body;
+        let result; // declare result variable outside the if block
+    
+        try {
+            if (req.user.id === req.params.id || req.user.isAdmin) {
+                if (password) {
+                    const hashedPassword = await bcrypt.hash(password, 10);
+    
+                    result = await User.findByIdAndDelete(
+                        id,
+                        {
+                            username,
+                            email,
+                            password: hashedPassword,
+                        },
+                        { new: true }
+                    );
+                    if (!result) {
+                        throw createError(404, 'User does not exist');
+                    }
+                } else {
+                    // Handle the case when password is not provided
+                    result = await User.findByIdAndDelete(
+                        id,
+                        {
+                            username,
+                            email,
+                        },
+                        { new: true }
+                    );
+                    if (!result) {
+                        throw createError(404, 'User does not exist');
+                    }
+                }
+                console.log('Requesting user ID:', req.user.id);
+                console.log('Target user ID:', id);
+        
+                res.json({ success: true, data: result });
+            } else {
+                throw createError(403, 'Unauthorized: You do not have permission to delete this user.');
             }
-            //Checking if the provided password matches with the stored one in the database
-            const validPassword = await bcrypt.compare(result.password, user.password);
-            //if the passwords do not match, throw an unauthorized error
-            if (!validPassword) throw createError.Unauthorized('Invalid username/password combination');
-            //if valid,Create and assign a token to the user
-            const accessToken = await jwtHelper.signAccessToken(user.id);
-            const refreshToken = await jwtHelper.signRefreshToken(user.id);
-
-            //send the access and refresh token in the response
-            res.send({ accessToken, refreshToken, message: 'login successfull'});
-        }catch(error){
-            //if a joi val error occurs, return a bad request error
-            if (error.isJoi === true)
-            return next(createError.BadRequest('Invalid username/password'));
-            //pass other error to the next middle ware for handling
+        } catch (error) {
+            console.log(error.message);
             next(error);
         }
-    }, 
+    },
+    
     setupProfile: async (req, res) => {
         try {
             const {userId, displayName, location, gender, birthday} = req.body;
@@ -220,5 +239,42 @@ module.exports = {
           console.error('Error getting user profile:', error);
           res.status(500).json({ success: false, message: 'Internal server error' });
         }
+      },
+
+      userStats: async (req, res, next) => {
+            const today = new Date();
+            const lastYear = today.setFullYear(today.setFullYear() -1);
+
+            const monthsArray = [
+                "January",
+                "February",
+                "March",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December"
+            ];
+
+            try{
+                const data = await User.aggregate([
+                    {
+                        $project:{
+                            month: {$month: "$createdAt"}
+                        }
+                    },{
+                        $group: {
+                            _id: "$month",
+                            total:{$sum: 1},
+                        }
+                    }
+                ]);
+                res.status(200).json(data);
+            }catch(err){
+                res.status(500).json(err)
+            }
       }
 };

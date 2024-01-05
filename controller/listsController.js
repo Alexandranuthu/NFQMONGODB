@@ -1,5 +1,6 @@
-const Lists = require('../routes/listsRoutes');
+const Lists = require('../model/listsModel');
 const createError = require('http-errors');
+const verify = require("../")
 
 module.exports = {
     addLists: async(req,res,next) => {
@@ -43,27 +44,26 @@ module.exports = {
         }
     },
     getLists: async (req, res, next) => {
-        const typeQuery = req.query.type;
-        const genreQuery = req.query.genre;
-        let list = [];
-    
         try {
-            if (typeQuery) {
-                if (genreQuery) {
-                    list = await Lists.aggregate([
-                        { $sample: { size: 10 } },
-                        { $match: { type: typeQuery, genre: genreQuery } }
-                    ]);
-                } else {
-                    list = await Lists.aggregate([{ $sample: { size: 10 } }]);
-                }
-            }
-        } catch (err) {
-            console.error(err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
-        }
+            // Fetch all lists from the database and populate the 'films' field
+            const lists = await Lists.find().populate({
+                path: 'film',  // Assuming 'films' is the field you want to populate
+                select: ['posterImagePath','title','genre','whereToWatch'] // Select the fields you want to include from the populated 'films'
+            });
     
-        res.json({ success: true, data: list });
+            // Check if any lists are found
+            if (!lists || lists.length === 0) {
+                // Respond with a 404 Not Found status if no lists are found
+                return res.status(404).json({ success: false, error: 'Lists not found' });
+            }
+    
+            // Respond with a JSON object containing the list details
+            res.json({ success: true, data: lists });
+        } catch (error) {
+            // Handle errors and respond with an error message
+            console.error('Error fetching Lists:', error);
+            res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
     },
     updateList: async (req, res, next) => {
         // Extract the film ID from the request parameters

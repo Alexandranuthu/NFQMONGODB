@@ -7,10 +7,13 @@ const cors = require('cors');
 const routes = require('./routes/userRoute');
 const router = require('./routes/filmRoutes');
 const route = require('./routes/platformRoutes')
-const listRoute = require('./routes/listsRoutes')
+const listRoute = require('./routes/listsRoutes');
+const watchlistRoute = require('./routes/watchlistRoutes');
+const genreRoute = require('./routes/genreRoutes');
+const searchRoute = require('./routes/searchRoutes');
 const path = require('path');
 const multer = require('multer');
-const Platform = require('./model/platformModel')
+const Platform = require('./model/platformModel');
 
 
 app.use(cors({
@@ -21,12 +24,16 @@ app.use(cors({
 
 // Body parser middleware
 app.use(bodyParser.json());
+app.use(express.json());
 
 // Routes
 app.use(routes);
 app.use(router);
 app.use(route);
 app.use(listRoute);
+app.use(watchlistRoute);
+app.use(genreRoute);
+app.use(searchRoute);
 
 // app.use('/Posters', express.static(path.join(__dirname, 'public', 'Posters')));
 
@@ -101,5 +108,5 @@ require('./helpers/init_mongodb');
 
 // Start the Express.js server to listen on the specified port
 app.listen(PORT, () => {
-  console.log(`Server is successfully running on ${PORT}`);
+  console.log(`Server is successfully running on ${PORT} rejoice!`);
 });
