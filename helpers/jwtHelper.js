@@ -9,7 +9,7 @@ module.exports = {
             const payload = {
                 userId: userId,
                 username: username,
-                isAdmin: userisAdmin,
+                isAdmin: isAdmin,
             };
             const secret = process.env.ACCESS_TOKEN_SECRET;
             const options = {

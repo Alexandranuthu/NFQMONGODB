@@ -17,11 +17,11 @@ const filmSchema = new mongoose.Schema({
         platform: { type: mongoose.Schema.Types.ObjectId, ref:'Platform', required:true},
         link: {type: String, required: true},
     }],
-    ratings: [{ 
-        user: {type: String, required: true },
-        rating:{ type: Number},
-        review: {type: String}
-     }],
+    ratings: [{
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        value: { type: Number },
+        review: { type: String }
+    }],
     posterImagePath: {
         type: String,  // Store the path to the image file
         required: true
@@ -49,7 +49,16 @@ const filmSchema = new mongoose.Schema({
     },
     trailers: [{
         link: {type: String, required: true},
-    }]
-})
+    }],
+    isSeries:{
+        type:Boolean,
+        default:false
+    },
+    reviews:[
+        {
+            user: {type: mongoose.Schema.Types.ObjectId, ref: 'User'}, text: String
+        }
+    ] 
+},{ timestamps: true });
 const Film = mongoose.model('Film', filmSchema);
 module.exports = Film;

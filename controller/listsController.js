@@ -1,6 +1,6 @@
 const Lists = require('../model/listsModel');
 const createError = require('http-errors');
-const verify = require("../")
+const mongoose = require('mongoose');
 
 module.exports = {
     addLists: async(req,res,next) => {

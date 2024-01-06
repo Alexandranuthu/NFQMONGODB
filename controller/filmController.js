@@ -117,7 +117,11 @@ getFilmDetails: async (req, res, next) => {
         const film = await Film.findById(id).populate({
             path: 'genre',
             select: 'name'
-        });
+        })
+        .populate({
+            path: 'ratings.user reviews.user',
+            select: 'username profilePicture'
+        })
 
         // Check if the film with the specified ID exists
         if (!film) {
@@ -139,6 +143,80 @@ getFilmDetails: async (req, res, next) => {
         res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 },
+
+getRandom: async (req, res, next) => {
+    const type = req.query.type;
+    try {
+        let film;
+
+        if (type === "series") {
+            film = await Film.aggregate([
+                { $match: { isSeries: true } },
+                { $sample: { size: 1 } }
+            ]);
+        } else {
+            film = await Film.aggregate([
+                { $match: { isSeries: false } },
+                { $sample: { size: 1 } }
+            ]);
+        }
+
+        res.status(200).json(film);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+},
+
+addRating: async (req, res, next) => {
+    const { filmId, value, review } = req.body;
+    const userId = req.user._id;
+
+    try {
+        // Fetch the film first
+        const film = await Film.findById(filmId);
+
+        // Update the film with the new rating
+        const updatedFilm = await Film.findByIdAndUpdate(
+            filmId,
+            {
+                $push: {
+                    ratings: { userId, value, review }
+                }
+            },
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            data: updatedFilm
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+},
+addReview: async(req, res, next ) => {
+    // const {reviewText, ratingValue} = req.body;
+    const {filmId, text} = req.body;
+    const userId = req.user.id;
+
+    try{
+        const film = await Film.findByIdAndUpdate(
+            filmId,
+            {$push:{
+                reviews:{userId,text,dateAdded : new Date()}
+            }
+        }, {new: true}
+        );
+        res.json({success: true, data:film});
+    }catch (error) {
+        console.error(error);
+        res.status(500).json({success: false,
+        error: 'Internal Server Error'
+        })
+    }
+}
+
 
 
 };
