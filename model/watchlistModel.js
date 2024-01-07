@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');//is Object Data Modelling that helps you create and manage MONGODB objects in Node.js apps
 //uses Encapsulation and abstraction
 const watchlistSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User', 
-        required:true,
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        unique: true,
     },
-    film:{
+    films:[{
+        film:{
         type: mongoose.Schema.Types.ObjectId,
         ref:'Film',
         required:true,
@@ -14,7 +16,8 @@ const watchlistSchema = new mongoose.Schema({
     watched:{
         type: Boolean,
         default: false,
-    },
+    }
+    }],
     addedAt:{
         type: Date,
         default:Date.now

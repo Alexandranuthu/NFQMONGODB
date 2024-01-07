@@ -215,8 +215,69 @@ addReview: async(req, res, next ) => {
         error: 'Internal Server Error'
         })
     }
+}, 
+addToFavorites: async(req, res, next) => {
+    const userId = req.user.id;
+    const filmId = req.params.filmId;
+
+    try{
+        const film = await Film.findById(filmId);
+        if(!film) {
+            throw createError(404, 'Film not found');
+        }
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            {$addToSet: {favorites: filmId}}, //add to set ensures uniqueness
+            {new: true}
+        );
+        res.json({success: true, data: user});
+    }catch (error) {
+        console.error(error);
+        res.status(500).json({success: false, error: 'Internal server error'});
+    }
+},
+likeReview: async (req, res, next) => {
+    try{
+        const filmId = req.params.filmId;
+        const reviewId = req.params.reviewId;
+
+        //find the film by Id
+        const film = await Film.findById(filmId);
+
+        //checking if the film exists
+        if(!film) {
+            throw createError(404, 'Film not found');
+        }
+        //find the review within the film
+        const review = film.reviews.id(reviewId);
+
+        //find the review exists
+        if(!review) {
+            throw createError(404, "The review doesn't exist in this film");
+        }
+
+        //check if the user has already liked the review
+        if(review.likes.includes(req.user.id)){
+            return next(createError(409, "You have already liked this review"));
+    }
+    //add the user id to the likes array of the review and save it
+    review.likes.push(req.user.id);
+
+    //save the updated film
+    await film.save();
+
+    res.status(200).json({
+        success:true, message: 'review liked successfully', review, 
+    })
+}catch(error) {
+    console.error('error liking review:', error);
+    res.status(error.status || 500).json({
+        success: false,
+        message: error.message || 'Internal server error',
+    });
+}
 }
 
 
-
-};
+}

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const filmSchema = new mongoose.Schema({
     title: {
@@ -14,51 +14,52 @@ const filmSchema = new mongoose.Schema({
         required: true
     },
     whereToWatch: [{
-        platform: { type: mongoose.Schema.Types.ObjectId, ref:'Platform', required:true},
-        link: {type: String, required: true},
+        platform: { type: mongoose.Schema.Types.ObjectId, ref: 'Platform', required: true },
+        link: { type: String, required: true },
     }],
     ratings: [{
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         value: { type: Number },
         review: { type: String }
     }],
+    reviews: [{
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        content: { type: String },
+        likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    }],
     posterImagePath: {
-        type: String,  // Store the path to the image file
+        type: String,
         required: true
     },
     runtime: {
         type: String,
         required: true
     },
-    genre:[{
+    genre: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref:'Genre', 
-        required:true,
+        ref: 'Genre',
+        required: true,
     }],
-    cast:[{
+    cast: [{
         type: String,
         required: true
     }],
-    agerating:{
+    agerating: {
         type: String,
-        required:true
+        required: true
     },
-    releaseyear:{
-        type:Number,
-        required:true,
+    releaseyear: {
+        type: Number,
+        required: true,
     },
     trailers: [{
-        link: {type: String, required: true},
+        link: { type: String, required: true },
     }],
-    isSeries:{
-        type:Boolean,
-        default:false
-    },
-    reviews:[
-        {
-            user: {type: mongoose.Schema.Types.ObjectId, ref: 'User'}, text: String
-        }
-    ] 
-},{ timestamps: true });
+    isSeries: {
+        type: Boolean,
+        default: false
+    }
+}, { timestamps: true });
+
 const Film = mongoose.model('Film', filmSchema);
 module.exports = Film;

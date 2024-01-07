@@ -44,6 +44,14 @@ const UserSchema = new mongoose.Schema({
     Bio: {
         type: String,
     },
+    favorites: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Film'
+    }],
+    watchlist: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Watchlist',
+    },
     isAdmin: {
         type: Boolean,
         default: false,

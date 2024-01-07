@@ -1,10 +1,11 @@
 const express = require('express');
 const routes = express.Router();
 const watchlistContoller = require ('../controller/watchlistController');
-
+const authmiddleware = require('../helpers/jwtHelper');
 try{
-    routes.get('/watchlist/getWatchList', watchlistContoller.getWatchList);
-    routes.post('/addMovieToWatchlist', watchlistContoller.addWatchlist);
+    routes.use(authmiddleware.verifyAccessToken);
+    routes.post('/addToWatchlist/:id', watchlistContoller.addWatchlist);
+    routes.get('/getWatchlist', watchlistContoller.getWatchList);
 }catch(err){
     console.error(err);
 }

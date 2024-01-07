@@ -3,6 +3,8 @@ const routes = express.Router();
 const {verifyAccessToken} = require('../helpers/jwtHelper');
 
 const userController = require("../controller/userController");
+const filmController = require("../controller/filmController");
+const watchlistroutes = require("../routes/watchlistRoutes");
 const auth = require("../controller/auth");
 try{
     routes.post('/register/addUserStep1', userController.addUserStep1);
@@ -14,7 +16,11 @@ try{
     routes.post('/register/profile/setup', userController.setupProfile);
     routes.get('/register/profile/:username', userController.getProfile);
     routes.get('/find', verifyAccessToken, userController.getAllUsers);
-    routes.get('/stats', userController.userStats)
+    routes.get('/stats', userController.userStats);
+    routes.post('/addToFavorites/:filmId', verifyAccessToken, userController.addToFavorites);
+
+    //watchlist routes
+    routes.use('/watchlist', watchlistroutes);
 }catch(err){
     console.error(err)
 }

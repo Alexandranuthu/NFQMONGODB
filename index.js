@@ -11,6 +11,7 @@ const listRoute = require('./routes/listsRoutes');
 const watchlistRoute = require('./routes/watchlistRoutes');
 const genreRoute = require('./routes/genreRoutes');
 const searchRoute = require('./routes/searchRoutes');
+const reviewRoute = require('./routes/reviewRoutes');
 const path = require('path');
 const multer = require('multer');
 const Platform = require('./model/platformModel');
@@ -34,6 +35,7 @@ app.use(listRoute);
 app.use(watchlistRoute);
 app.use(genreRoute);
 app.use(searchRoute);
+app.use(reviewRoute);
 
 // app.use('/Posters', express.static(path.join(__dirname, 'public', 'Posters')));
 

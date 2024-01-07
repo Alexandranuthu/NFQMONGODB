@@ -1,13 +1,21 @@
+const { populate } = require('../model/userModel');
 const Watchlist = require('../model/watchlistModel');
 const createError = require('http-errors');
 
 module.exports = {
-   // Retrieve a watchlist item by its unique identifier and populate the 'film' field
-    // Example of updating the getWatchList controller
+    // getWatchList controller
 getWatchList: async (req, res, next) => {
     try {
         const userId = req.user.id; // Use the correct way to get the authenticated user's ID
-        const watchlistItems = await Watchlist.find({ userId }).populate('film').exec();
+        const watchlistItems = await Watchlist.find({ user: userId })
+            .populate({
+                path: "films.film",
+                select: "title",
+            })
+            .populate({
+                path: 'user',
+                select: "username"
+            });
 
         res.status(200).json(watchlistItems);
     } catch (error) {
@@ -18,6 +26,7 @@ getWatchList: async (req, res, next) => {
 
 
 
+
     // Add a new watchlist item based on the request body
     addWatchlist: async (req, res, next) => {
         try {
@@ -25,16 +34,18 @@ getWatchList: async (req, res, next) => {
 
             console.log('req.user:', req.user);
             console.log('req.body', req.body);
+
+
             const { filmId } = req.body;
 
-            if (!req.user._id) {
+            if (!req.user.id) {
                 throw createError(401, 'Unauthorized');
             }
             
             // Create a new watchlist item
             const newWatchlistItem = new Watchlist({
-                userId: req.user.id, // Use the correct way to get the authenticated user's ID
-                film: filmId, // Use the filmId received from the request body
+                user: req.user.id, // Use the correct way to get the authenticated user's ID
+                films: [{film : filmId}], // Use the filmId received from the request body
             });
 
             // Save the new watchlist item to the database

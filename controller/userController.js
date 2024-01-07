@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('../model/userModel');
+const Film = require('../model/filmModel');
 const createError = require('http-errors');
 const bcrypt = require ('bcrypt');
 const { authSchema } = require('../auth/auth_schema');
@@ -88,7 +89,14 @@ module.exports = {
     getUser:  async (req, res) => {
         try {
             const id = req.params.id //extracting the id from the request parameters
-            const result = await User.findById(id);
+            const result = await User.findById(id).populate({
+                path: 'favorites',
+                select: 'title synopsis'
+            })
+            .populate({
+                path: 'watchlist',
+                select: 'user films watched'
+            });
             res.send(result); // Sending the result as the response
         } catch (error) {
             console.error(error);
@@ -276,5 +284,61 @@ module.exports = {
             }catch(err){
                 res.status(500).json(err)
             }
-      }
+      },
+      addToFavorites: async(req, res, next) => {
+        const userId = req.user.id;
+        const filmId = req.params.filmId;
+    
+        try{
+            const film = await Film.findById(filmId);
+            if(!film) {
+                throw createError(404, 'Film not found');
+            }
+    
+            const user = await User.findByIdAndUpdate(
+                userId,
+                {$addToSet: {favorites: filmId}}, //add to set ensures uniqueness
+                {new: true}
+            );
+            res.json({success: true, data: user});
+        }catch (error) {
+            console.error(error);
+            res.status(500).json({success: false, error: 'Internal server error'});
+        }
+    },
+    addWatchlist: async (req, res, next) => {
+        try {
+            // Extract movie details from the request body
+
+            console.log('req.user:', req.user);
+            console.log('req.body', req.body);
+
+
+            const { filmId } = req.body;
+
+            if (!req.user.id) {
+                throw createError(401, 'Unauthorized');
+            }
+            
+            // Create a new watchlist item
+            const newWatchlistItem = new Watchlist({
+                user: req.user.id, // Use the correct way to get the authenticated user's ID
+                films: [{film : filmId}], // Use the filmId received from the request body
+            });
+
+            // Save the new watchlist item to the database
+            const savedWatchlistItem = await newWatchlistItem.save();
+
+            // Send a success response
+            res.status(200).json({
+                 success: true,
+                message: 'Movie added to watchlist successfully', 
+                watchlistItem: savedWatchlistItem });
+        } catch (error) {
+            console.error('Error adding movie to watchlist:', error);
+            res.status(500).json({ 
+                success: false, 
+                message: 'Internal server error' });
+        }
+},
 };
