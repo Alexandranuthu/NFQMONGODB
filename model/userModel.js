@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require("bcrypt");
+const passportLocalMongoose = require ('passport-local-mongoose');
 
 const UserSchema = new mongoose.Schema({
     username: {
@@ -16,28 +17,9 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    location: {
-        address: { type: String },
-    },
-    displayName: {
-        type: String,
-    },
-    gender: {
-        type: String,
-        enum: ['male', 'female', 'non-binary', 'other'],
-    },
-    birthday: {
-        year: {
-            type: Number,
-        },
-        month: {
-            type: String,
-            enum: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-        },
-        day: {
-            type: Number,
-        }
-    },
+   location: {
+    type: String
+   },
     profilePicture: {
         type: String,
     },
@@ -52,10 +34,18 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Watchlist',
     },
+    averageRating: {
+        type: Number,
+        default: 0,
+    },
     isAdmin: {
         type: Boolean,
         default: false,
     },
+    resetToken: String,
+    
+    resetTokenExpiration: Date,
+    
     createdAt: {
         type: Date,
         default: Date.now,
@@ -89,13 +79,7 @@ UserSchema.methods.isValidPassword = async function (password) {
     }
 };
 
-UserSchema.virtual('age').get(function () {
-    if (this.birthday && this.birthday.year) {
-        const currentYear = new Date().getFullYear();
-        return currentYear - this.birthday.year;
-    }
-    return null;
-});
+UserSchema.plugin(passportLocalMongoose);
 
 const User = mongoose.model('User', UserSchema);
 

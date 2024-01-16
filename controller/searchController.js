@@ -6,13 +6,10 @@ module.exports = {
     search: async (req, res, next) => {
         try {
             const query = req.query.q; // Extract the search query from request parameters
-
-            // Implement your search logic (e.g., using regex, text indexes, etc.)
             const results = await Film.find({
                 $or: [
                     { title: { $regex: new RegExp(query, 'i') } }, // Case-insensitive title search
                     { director: { $regex: new RegExp(query, 'i') } } // Case-insensitive director search
-                    // Add more fields as needed
                 ]
             });
 

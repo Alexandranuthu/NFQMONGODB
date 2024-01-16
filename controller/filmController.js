@@ -169,7 +169,7 @@ getRandom: async (req, res, next) => {
 
 addRating: async (req, res, next) => {
     const { filmId, value, review } = req.body;
-    const userId = req.user._id;
+    const userId = req.params.id;
 
     try {
         // Fetch the film first
@@ -195,89 +195,43 @@ addRating: async (req, res, next) => {
         res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 },
-addReview: async(req, res, next ) => {
-    // const {reviewText, ratingValue} = req.body;
-    const {filmId, text} = req.body;
-    const userId = req.user.id;
-
-    try{
-        const film = await Film.findByIdAndUpdate(
-            filmId,
-            {$push:{
-                reviews:{userId,text,dateAdded : new Date()}
-            }
-        }, {new: true}
-        );
-        res.json({success: true, data:film});
-    }catch (error) {
-        console.error(error);
-        res.status(500).json({success: false,
-        error: 'Internal Server Error'
-        })
+addFilmRating: async (req, res) => {
+    try {
+      const { user, value, review } = req.body;
+      const filmId = req.params.filmId;
+  
+      // Assuming you have user authentication and you know the user making the rating
+      // You can add more validation as needed
+  
+      const film = await Film.findById(filmId);
+      if (!film) {
+        return res.status(404).json({ error: 'Film not found' });
+      }
+  
+      // Check if the user has already rated the film
+      const existingRating = film.ratings.find((rating) => rating.user.toString() === user);
+      if (existingRating) {
+        return res.status(400).json({ error: 'User has already rated this film' });
+      }
+  
+      // Add the new rating
+      film.ratings.push({ user, value, review });
+  
+      // Calculate the average rating
+      const totalRatings = film.ratings.reduce((sum, rating) => sum + rating.value, 0);
+      const averageRating = totalRatings / film.ratings.length;
+  
+      // Update the film with the new average rating
+      film.averageRating = averageRating;
+  
+      // Save the updated film
+      await film.save();
+  
+      res.json({ success: true, averageRating });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-}, 
-addToFavorites: async(req, res, next) => {
-    const userId = req.user.id;
-    const filmId = req.params.filmId;
-
-    try{
-        const film = await Film.findById(filmId);
-        if(!film) {
-            throw createError(404, 'Film not found');
-        }
-
-        const user = await User.findByIdAndUpdate(
-            userId,
-            {$addToSet: {favorites: filmId}}, //add to set ensures uniqueness
-            {new: true}
-        );
-        res.json({success: true, data: user});
-    }catch (error) {
-        console.error(error);
-        res.status(500).json({success: false, error: 'Internal server error'});
-    }
-},
-likeReview: async (req, res, next) => {
-    try{
-        const filmId = req.params.filmId;
-        const reviewId = req.params.reviewId;
-
-        //find the film by Id
-        const film = await Film.findById(filmId);
-
-        //checking if the film exists
-        if(!film) {
-            throw createError(404, 'Film not found');
-        }
-        //find the review within the film
-        const review = film.reviews.id(reviewId);
-
-        //find the review exists
-        if(!review) {
-            throw createError(404, "The review doesn't exist in this film");
-        }
-
-        //check if the user has already liked the review
-        if(review.likes.includes(req.user.id)){
-            return next(createError(409, "You have already liked this review"));
-    }
-    //add the user id to the likes array of the review and save it
-    review.likes.push(req.user.id);
-
-    //save the updated film
-    await film.save();
-
-    res.status(200).json({
-        success:true, message: 'review liked successfully', review, 
-    })
-}catch(error) {
-    console.error('error liking review:', error);
-    res.status(error.status || 500).json({
-        success: false,
-        message: error.message || 'Internal server error',
-    });
-}
-}
-
+  },
 
 }

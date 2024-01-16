@@ -12,9 +12,14 @@ const watchlistRoute = require('./routes/watchlistRoutes');
 const genreRoute = require('./routes/genreRoutes');
 const searchRoute = require('./routes/searchRoutes');
 const reviewRoute = require('./routes/reviewRoutes');
+const authRoute = require('./routes/authRoutes');
+const watchedRoute = require('./routes/watchedRoute');
 const path = require('path');
-const multer = require('multer');
+const upload = require('./config/Multer');
 const Platform = require('./model/platformModel');
+const passport = require('passport');
+const passportConfig = require('./config/Passport');
+const session = require('express-session');
 
 
 app.use(cors({
@@ -28,6 +33,13 @@ app.use(bodyParser.json());
 app.use(express.json());
 
 // Routes
+app.use(session({
+  secret: process.env.ACCESS_TOKEN_SECRET, // replace with a strong, randomly generated string
+  resave: false,
+  saveUninitialized: false,
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(routes);
 app.use(router);
 app.use(route);
@@ -36,41 +48,14 @@ app.use(watchlistRoute);
 app.use(genreRoute);
 app.use(searchRoute);
 app.use(reviewRoute);
+app.use(authRoute);
+app.use(watchedRoute);
+
 
 // app.use('/Posters', express.static(path.join(__dirname, 'public', 'Posters')));
 
-const storageEngine = multer.diskStorage({
-  destination: "./avatars",
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}--${file.originalname}`);
-  },
-});
-
-const upload = multer({
-  storage: storageEngine,
-  limits: { fileSize: 1000000 },
-  fileFilter: (req, file, cb) => {
-    checkFileType(file, cb);
-  }
-});
-
-const checkFileType = function (file, cb) {
-  //Allowed file extensions
-  const fileTypes = /jpeg|jpg|png|gif|svg/;
-
-  //check extension names
-  const extName = fileTypes.test(path.extname(file.originalname).toLowerCase());
-
-  const mimeType = fileTypes.test(file.mimetype);
-
-  if (mimeType && extName) {
-    return cb(null, true);
-  } else {
-    cb("Error: You can Only Upload Images!!");
-  }
-};
-
-app.post("/single", upload.single("image"), (req, res) => {
+app.post("/single", upload.single("profilePicture"), (req, res) => {
+  console.log(req.file);
   if (req.file) {
     res.send("Single file uploaded successfully");
   } else {

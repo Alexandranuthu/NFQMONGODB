@@ -9,101 +9,24 @@ const JWT = require('jsonwebtoken');
 const { config } = require('dotenv');
 const jwtHelper = require('../helpers/jwtHelper')
 
+const updateUserById = async (id, updateData) => {
+    const result = await User.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true }
+    );
+
+    if (!result) {
+        throw createError(404, 'User does not exist');
+    }
+
+    return result;
+};
 
 module.exports = {
-    addUserStep1: async (req, res) => {
-            try{
-                //extracting the basic information from the request body
-                const 
-                { username, email, password, birthday} = req.body;
-                const result = await authSchema.validateAsync({
-                    username,
-                    email,
-                    password,
-                });
-
-                const exists = await User.findOne({ email});
-
-                if (exists) {
-                    throw createError.Conflict(`${email} is already registered`);
-                }
-                //save user with basic information first
-                const user = await new User(result);
-                const savedUser = await user.save();
-
-                //to generate a token for the next step
-                const accessToken = await signAccessToken(savedUser.id, savedUser.username, true);
-                const refreshToken = await signRefreshToken(savedUser.id);
-
-                console.log('User Created Successfully', savedUser);
-
-                //redirecting the user to the second step with the token
-                const redirectUrl = `addUserStep2?token=${accessToken}`;
-                res.json({ accessToken, refreshToken, message: 'User added successfully', redirectUrl });
-            }catch (error) {
-                if (error.isJoi === true) error.status = 422;
-                console.error('Error in step 1:', error);
-                res.status(500).json({success: false, error: 'Internal Server Error'});
-            }
-    },
-    addUserStep2: async (req, res) => {
-        const addUserStep2 = async (email,displayname, age, gender, location, profilePicture) => {
-            try {
-                // Your logic to update the user with additional information and profile picture
-                const updatedUser = await User.findOneAndUpdate(
-                    { email },
-                    { displayname,age, gender, location, profilePicture },
-                    { new: true }
-                );
     
-                if (!updatedUser) {
-                    throw createError.NotFound('User not found');
-                }
     
-                console.log('User updated successfully:', updatedUser);
-            } catch (error) {
-                console.error('Error updating user profile:', error.message);
-                throw error; // Rethrow the error for higher-level handling
-            }
-        };
-    
-        try {
-            const { email,displayname, age, gender, location } = req.body;
-            const profilePicture = req.file ? req.file.filename : null;
-            // Updating the user with additional information
-            await addUserStep2(email,displayname, age, gender, location, profilePicture);
-    
-            res.json({
-                success: true,
-                message: 'User Registration Completed'
-            });
-        } catch (error) {
-            console.error('Error in step 2:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Internal Server Error'
-            });
-        }
-    },
-    
-    getUser:  async (req, res) => {
-        try {
-            const id = req.params.id //extracting the id from the request parameters
-            const result = await User.findById(id).populate({
-                path: 'favorites',
-                select: 'title synopsis'
-            })
-            .populate({
-                path: 'watchlist',
-                select: 'user films watched'
-            });
-            res.send(result); // Sending the result as the response
-        } catch (error) {
-            console.error(error);
-            res.status(500).send("Internal Server Error");
-        }
-    },
-    getAllUsers: async (req, res) => {
+getAllUsers: async (req, res) => {
         const query = req.query.new;
     
         // if (req.user && req.user.isAdmin === true) {  // Use req.user.isAdmin to check for admin access
@@ -122,55 +45,45 @@ module.exports = {
     },
     
     updateUser: async (req, res, next) => {
-        const id = req.params.id; // extracting the id from the request parameters
-        const { username, email, password } = req.body;
-        let result; // declare result variable outside the if block
-    
         try {
-            if (req.user.id === req.params.id || req.user.isAdmin) {
-                if (password) {
-                    const hashedPassword = await bcrypt.hash(password, 10);
+            // Check if user is authenticated
+            if (!req.user || !req.user._id) {
+                return res.status(401).json({ error: { status: 401, message: 'Unauthorized: User not authenticated' } });
+            }
     
-                    result = await User.findByIdAndUpdate(
-                        id,
-                        {
-                            username,
-                            email,
-                            password: hashedPassword,
-                        },
-                        { new: true }
-                    );
-                    if (!result) {
-                        throw createError(404, 'User does not exist');
-                    }
+            const id = req.params.id; // extracting the id from the request parameters
+            const { username, email, password } = req.body;
+            let result;
+    
+            // Check if the user making the request is the same user being updated
+            if (req.user._id.equals(id)) {
+                if (password) {
+                    // Handle password update
+                    const hashedPassword = await bcrypt.hash(password, 10);
+                    result = await updateUserById(id, { username, email, password: hashedPassword });
                 } else {
-                    // Handle the case when password is not provided
-                    result = await User.findByIdAndUpdate(
-                        id,
-                        {
-                            username,
-                            email,
-                        },
-                        { new: true }
-                    );
-                    if (!result) {
-                        throw createError(404, 'User does not exist');
-                    }
+                    // Handle non-password update
+                    result = await updateUserById(id, { username, email });
                 }
-                console.log('Requesting user ID:', req.user.id);
-                console.log('Target user ID:', id);
-        
+    
+                console.log("User successfully updated:", result);
+    
                 res.json({ success: true, data: result });
             } else {
+                console.log("User not authorized to update");
                 throw createError(403, 'Unauthorized: You do not have permission to update this user.');
             }
         } catch (error) {
-            console.log(error.message);
+            console.error(error.message);
             next(error);
         }
     },
     
-    deleteUser: async (req, res, next) => {
+    
+    
+    
+    
+deleteUser: async (req, res, next) => {
         const id = req.params.id; // extracting the id from the request parameters
         const { username, email, password } = req.body;
         let result; // declare result variable outside the if block
@@ -218,38 +131,58 @@ module.exports = {
             next(error);
         }
     },
-    
-    setupProfile: async (req, res) => {
-        try {
-            const {userId, displayName, location, gender, birthday} = req.body;
 
-            await User.findByIdAndUpdate(userId, {displayName, location,
-            gender, birthday});
-
-            res.status(200).json({
-                success: true, message: 'User profile set up successfully'
-            });
-        }catch(error){
-            console.error('Error setting up user profile:', error);
-            res.status(500).json({success: false, message: 'Internal server error'});
-        }
-    },
     getProfile: async (req, res) => {
-        try {
-          const userId = req.params.userId;
       
-          // Fetch user profile from the database
-          const userProfile = await User.findById(userId);
+        try {
+            const { id } = req.params; 
+      
+          console.log('User ID:', id);
+      
+          // Fetch user profile from the database using the correct variable name
+          const userProfile = await User.findById(id);
+      
+          if (!userProfile) {
+            return res.status(404).json({
+              success: false,
+              message: 'User profile not found for ID: ' + id,
+            });
+          }
       
           // Send the user profile as the response
-          res.status(200).json({ success: true, data: userProfile });
+          res.status(200).json({
+            success: true,
+            data: {
+              username: userProfile.username,
+              email: userProfile.email,
+              bio: userProfile.Bio || '',
+              location: userProfile.location || '',
+              profilePicture: userProfile.profilePicture,
+              message: 'you have fetched data',
+            },
+          });
         } catch (error) {
           console.error('Error getting user profile:', error);
-          res.status(500).json({ success: false, message: 'Internal server error' });
+      
+          // Handle specific types of errors
+          if (error.name === 'CastError') {
+            // Handle invalid ObjectId format
+            return res.status(400).json({
+              success: false,
+              message: 'Invalid user ID format: ' + req.params.id,  // Use the declared userId variable
+            });
+          }
+      
+          res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+          });
         }
       },
+      
+      
 
-      userStats: async (req, res, next) => {
+userStats: async (req, res, next) => {
             const today = new Date();
             const lastYear = today.setFullYear(today.setFullYear() -1);
 
@@ -285,7 +218,7 @@ module.exports = {
                 res.status(500).json(err)
             }
       },
-      addToFavorites: async(req, res, next) => {
+addToFavorites: async(req, res, next) => {
         const userId = req.user.id;
         const filmId = req.params.filmId;
     
@@ -306,39 +239,5 @@ module.exports = {
             res.status(500).json({success: false, error: 'Internal server error'});
         }
     },
-    addWatchlist: async (req, res, next) => {
-        try {
-            // Extract movie details from the request body
 
-            console.log('req.user:', req.user);
-            console.log('req.body', req.body);
-
-
-            const { filmId } = req.body;
-
-            if (!req.user.id) {
-                throw createError(401, 'Unauthorized');
-            }
-            
-            // Create a new watchlist item
-            const newWatchlistItem = new Watchlist({
-                user: req.user.id, // Use the correct way to get the authenticated user's ID
-                films: [{film : filmId}], // Use the filmId received from the request body
-            });
-
-            // Save the new watchlist item to the database
-            const savedWatchlistItem = await newWatchlistItem.save();
-
-            // Send a success response
-            res.status(200).json({
-                 success: true,
-                message: 'Movie added to watchlist successfully', 
-                watchlistItem: savedWatchlistItem });
-        } catch (error) {
-            console.error('Error adding movie to watchlist:', error);
-            res.status(500).json({ 
-                success: false, 
-                message: 'Internal server error' });
-        }
-},
-};
+}

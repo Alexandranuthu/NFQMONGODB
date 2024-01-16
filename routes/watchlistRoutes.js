@@ -5,7 +5,10 @@ const authmiddleware = require('../helpers/jwtHelper');
 try{
     routes.use(authmiddleware.verifyAccessToken);
     routes.post('/addToWatchlist/:id', watchlistContoller.addWatchlist);
-    routes.get('/getWatchlist', watchlistContoller.getWatchList);
+    routes.delete('/remove/:id/:filmId', watchlistContoller.removeFromWatchlist);
+    routes.get('/getWatchlist/:id', watchlistContoller.getWatchList);
+    routes.get('/getWatchlist/:id', watchlistContoller.getWatchList);
+    routes.get('/inWatchlist/:id/:filmId', watchlistContoller.isInWatchlist);
 }catch(err){
     console.error(err);
 }

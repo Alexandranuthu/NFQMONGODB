@@ -1,7 +1,7 @@
 const Lists = require('../model/listsModel');
 const createError = require('http-errors');
 const mongoose = require('mongoose');
-
+const films = require('../model/filmModel');
 module.exports = {
     addLists: async(req,res,next) => {
         const list = new Lists(req.body);
@@ -45,11 +45,12 @@ module.exports = {
     },
     getLists: async (req, res, next) => {
         try {
-            // Fetch all lists from the database and populate the 'films' field
-            const lists = await Lists.find().populate({
-                path: 'film',  // Assuming 'films' is the field you want to populate
-                select: ['posterImagePath','title','genre','whereToWatch'] // Select the fields you want to include from the populated 'films'
-            });
+
+const lists = await Lists.find().populate({
+    path: 'film',
+    select: ['posterImagePath', 'title', 'genre', 'whereToWatch'],
+});
+
     
             // Check if any lists are found
             if (!lists || lists.length === 0) {
